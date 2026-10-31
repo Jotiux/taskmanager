@@ -129,3 +129,58 @@ export function indicarCargaApi(cargando) {
   elementos.btnSincronizar.disabled = cargando;
   elementos.btnSincronizar.textContent = cargando ? 'Consultando API…' : 'Importar desde API';
 }
+
+/* ---------- Formulario ---------- */
+
+export function leerFormulario() {
+  return {
+    id: elementos.tareaId.value,
+    titulo: elementos.titulo.value.trim(),
+    prioridad: elementos.prioridad.value
+  };
+}
+
+/**
+ * Pinta los mensajes de validación con el mismo patrón visto en clase:
+ * textContent + clases is-invalid / is-valid de Bootstrap + aria-invalid.
+ */
+export function mostrarErrores(errores) {
+  ['titulo', 'prioridad'].forEach((campo) => {
+    const mensaje = errores[campo] ?? '';
+    const tieneError = mensaje !== '';
+    const control = elementos[campo];
+
+    $(`error-${campo}`).textContent = mensaje;
+    control.classList.toggle('is-invalid', tieneError);
+    control.classList.toggle('is-valid', !tieneError);
+    control.setAttribute('aria-invalid', String(tieneError));
+  });
+
+  const primerCampoConError = Object.keys(errores)[0];
+  if (primerCampoConError) {
+    elementos[primerCampoConError].focus();
+  }
+}
+
+export function cargarEnFormulario(tarea) {
+  elementos.tareaId.value = tarea.id;
+  elementos.titulo.value = tarea.title;
+  elementos.prioridad.value = tarea.priority;
+  elementos.tituloFormulario.textContent = 'Editar tarea';
+  elementos.btnGuardar.textContent = 'Actualizar tarea';
+  elementos.btnCancelar.hidden = false;
+  elementos.titulo.focus();
+}
+
+export function limpiarFormulario() {
+  elementos.form.reset();
+  elementos.tareaId.value = '';
+  ['titulo', 'prioridad'].forEach((campo) => {
+    elementos[campo].classList.remove('is-invalid', 'is-valid');
+    elementos[campo].removeAttribute('aria-invalid');
+    $(`error-${campo}`).textContent = '';
+  });
+  elementos.tituloFormulario.textContent = 'Nueva tarea';
+  elementos.btnGuardar.textContent = 'Guardar tarea';
+  elementos.btnCancelar.hidden = true;
+}

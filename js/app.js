@@ -11,6 +11,8 @@ const estado = {
   tareas: []
 };
 
+const PRIORIDADES_VALIDAS = ['alta', 'media', 'baja'];
+
 /* ---------- Render y persistencia ---------- */
 
 function obtenerTareasVisibles() {
@@ -67,12 +69,112 @@ function mensajeErrorAmigable(error) {
   return `No se pudieron cargar las tareas de la API (${error.message}). Puedes seguir trabajando con tus tareas locales.`;
 }
 
+/* ---------- CRUD ---------- */
+
+function validarTarea({ titulo, prioridad }) {
+  const errores = {};
+
+  if (titulo === '') {
+    errores.titulo = 'El título es obligatorio.';
+  } else if (titulo.length < 3) {
+    errores.titulo = 'El título debe tener al menos 3 caracteres.';
+  } else if (titulo.length > 100) {
+    errores.titulo = 'El título no puede superar los 100 caracteres.';
+  }
+
+  if (prioridad === '') {
+    errores.prioridad = 'Selecciona una prioridad.';
+  } else if (!PRIORIDADES_VALIDAS.includes(prioridad)) {
+    errores.prioridad = 'La prioridad seleccionada no es válida.';
+  }
+
+  return errores;
+}
+
+function guardarDesdeFormulario(evento) {
+  evento.preventDefault();
+
+  const datos = ui.leerFormulario();
+  const errores = validarTarea(datos);
+  ui.mostrarErrores(errores);
+  if (Object.keys(errores).length > 0) return;
+
+  if (datos.id) {
+    // Editar: se crea un objeto nuevo con los cambios (spread) y se reemplaza en el arreglo
+    const id = Number(datos.id);
+    estado.tareas = estado.tareas.map((tarea) =>
+      tarea.id === id
+        ? { ...tarea, title: datos.titulo, priority: datos.prioridad, updatedAt: new Date().toISOString() }
+        : tarea
+    );
+    ui.mostrarNotificacion('Tarea actualizada correctamente.', 'success');
+  } else {
+    // Crear
+    const nueva = {
+      id: Date.now(),
+      title: datos.titulo,
+      priority: datos.prioridad,
+      completed: false,
+      createdAt: new Date().toISOString(),
+      source: 'local'
+    };
+    estado.tareas = [...estado.tareas, nueva];
+    ui.mostrarNotificacion('Tarea creada y guardada en localStorage.', 'success');
+  }
+
+  persistirYRenderizar();
+  ui.limpiarFormulario();
+}
+
+function alternarCompletada(id) {
+  estado.tareas = estado.tareas.map((tarea) =>
+    tarea.id === id ? { ...tarea, completed: !tarea.completed } : tarea
+  );
+  persistirYRenderizar();
+}
+
+function editarTarea(id) {
+  const tarea = estado.tareas.find((t) => t.id === id);
+  if (tarea) ui.cargarEnFormulario(tarea);
+}
+
+function eliminarTarea(id) {
+  const tarea = estado.tareas.find((t) => t.id === id);
+  if (!tarea || !confirm(`¿Eliminar la tarea "${tarea.title}"?`)) return;
+
+  estado.tareas = estado.tareas.filter((t) => t.id !== id);
+  persistirYRenderizar();
+
+  if (Number(ui.elementos.tareaId.value) === id) ui.limpiarFormulario();
+  ui.mostrarNotificacion('Tarea eliminada.', 'warning');
+}
+
+/** Delegación de eventos: un solo listener en la lista atiende los botones de todas las tareas. */
+function manejarClickLista(evento) {
+  const item = evento.target.closest('.task-item');
+  if (!item) return;
+  const id = Number(item.dataset.id);
+
+  if (evento.target.closest('.btn-editar')) editarTarea(id);
+  else if (evento.target.closest('.btn-eliminar')) eliminarTarea(id);
+}
+
+function manejarCambioLista(evento) {
+  if (!evento.target.matches('.task-check')) return;
+  alternarCompletada(Number(evento.target.closest('.task-item').dataset.id));
+}
+
 /* ---------- Eventos e inicio ---------- */
 
 function registrarEventos() {
   const { elementos } = ui;
 
   elementos.btnSincronizar.addEventListener('click', importarDesdeApi);
+
+  elementos.form.addEventListener('submit', guardarDesdeFormulario);
+  elementos.btnCancelar.addEventListener('click', ui.limpiarFormulario);
+  elementos.lista.addEventListener('click', manejarClickLista);
+  elementos.lista.addEventListener('change', manejarCambioLista);
 
   window.addEventListener('online', () => {
     ui.actualizarEstadoConexion();
