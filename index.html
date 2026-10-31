@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskManager · Gestión de tareas offline</title>
+  <!-- Ícono SVG embebido (data URI): evita el error 404 de /favicon.ico y funciona sin internet -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b5bdb'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- Bootstrap 5.3.3 (solo CSS) guardado localmente para que la app funcione sin internet -->
+  <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- type="module" habilita import/export (Opción A: Arquitectura Modular ES6). Se ejecuta diferido por defecto. -->
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+  <main class="container py-4 py-lg-5">
+
+    <!-- Encabezado -->
+    <header class="app-header d-flex flex-wrap gap-3 align-items-start justify-content-between mb-4">
+      <div>
+        <span class="etiqueta">JavaScript ES6 · Fetch API · localStorage</span>
+        <h1>TaskManager</h1>
+        <p class="descripcion mb-0">Gestiona tus tareas incluso sin conexión. Todo se guarda en tu navegador.</p>
+      </div>
+      <div class="d-flex flex-column align-items-end gap-2">
+        <span id="estadoConexion" class="conexion" role="status">Comprobando conexión…</span>
+        <button id="btnSincronizar" type="button" class="btn btn-outline-primary btn-sm">
+          Importar desde API
+        </button>
+      </div>
+    </header>
+
+    <!-- Notificaciones visuales (éxito, error de red, etc.) -->
+    <div id="notificacion" class="alert" role="alert" aria-live="polite" hidden></div>
+
+    <!-- Dashboard de métricas -->
+    <section id="dashboard" class="row g-3 mb-4" aria-label="Métricas de tareas">
+      <div class="col-6 col-md-3">
+        <article class="metric-card">
+          <span class="metric-label">Total</span>
+          <strong id="metricTotal" class="metric-value">0</strong>
+        </article>
+      </div>
+      <div class="col-6 col-md-3">
+        <article class="metric-card metric-pendientes">
+          <span class="metric-label">Pendientes</span>
+          <strong id="metricPendientes" class="metric-value">0</strong>
+        </article>
+      </div>
+      <div class="col-6 col-md-3">
+        <article class="metric-card metric-completadas">
+          <span class="metric-label">Completadas</span>
+          <strong id="metricCompletadas" class="metric-value">0</strong>
+        </article>
+      </div>
+      <div class="col-6 col-md-3">
+        <article class="metric-card">
+          <span class="metric-label">Progreso</span>
+          <strong id="metricProgreso" class="metric-value">0%</strong>
+          <div class="progress mt-2" role="progressbar" aria-label="Progreso de tareas completadas"
+               aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="contenedorProgreso">
+            <div id="barraProgreso" class="progress-bar" style="width: 0%"></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="row g-4 align-items-start">
+
+      <!-- Formulario: crear / editar -->
+      <div class="col-lg-4">
+        <section class="panel">
+          <h2 id="tituloFormulario" class="panel-title">Nueva tarea</h2>
+          <form id="formTarea" novalidate>
+            <input type="hidden" id="tareaId">
+
+            <div class="mb-3">
+              <label for="titulo" class="form-label">Título <span class="obligatorio">*</span></label>
+              <input id="titulo" name="titulo" class="form-control" placeholder="Ej. Preparar informe final"
+                     maxlength="100" autocomplete="off" aria-describedby="ayuda-titulo error-titulo">
+              <div id="ayuda-titulo" class="form-text">Entre 3 y 100 caracteres.</div>
+              <div id="error-titulo" class="invalid-feedback"></div>
+            </div>
+
+            <div class="mb-4">
+              <label for="prioridad" class="form-label">Prioridad <span class="obligatorio">*</span></label>
+              <select id="prioridad" name="prioridad" class="form-select" aria-describedby="error-prioridad">
+                <option value="">Selecciona una prioridad</option>
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="baja">Baja</option>
+              </select>
+              <div id="error-prioridad" class="invalid-feedback"></div>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+              <button id="btnGuardar" type="submit" class="btn btn-primary">Guardar tarea</button>
+              <button id="btnCancelar" type="button" class="btn btn-light" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- Lista de tareas con filtros, búsqueda y orden -->
+      <div class="col-lg-8">
+        <section class="panel">
+          <div class="toolbar row g-2 align-items-center mb-3">
+            <div class="col-sm-7">
+              <label for="busqueda" class="visually-hidden">Buscar por título</label>
+              <input id="busqueda" type="search" class="form-control" placeholder="Buscar por título…" autocomplete="off">
+            </div>
+            <div class="col-12 order-sm-last">
+              <div class="btn-group w-100" role="group" aria-label="Filtrar por estado">
+                <input type="radio" class="btn-check" name="filtro" id="filtroTodas" value="todas" checked>
+                <label class="btn btn-outline-secondary btn-sm" for="filtroTodas">Todas</label>
+                <input type="radio" class="btn-check" name="filtro" id="filtroPendientes" value="pendientes">
+                <label class="btn btn-outline-secondary btn-sm" for="filtroPendientes">Pendientes</label>
+                <input type="radio" class="btn-check" name="filtro" id="filtroCompletadas" value="completadas">
+                <label class="btn btn-outline-secondary btn-sm" for="filtroCompletadas">Completadas</label>
+              </div>
+            </div>
+            <div class="col-sm-5">
+              <label for="orden" class="visually-hidden">Ordenar lista</label>
+              <select id="orden" class="form-select">
+                <option value="fecha-desc">Más recientes</option>
+                <option value="fecha-asc">Más antiguas</option>
+                <option value="prioridad-desc">Prioridad: Alta → Baja</option>
+                <option value="prioridad-asc">Prioridad: Baja → Alta</option>
+              </select>
+            </div>
+          </div>
+
+          <p id="resumenLista" class="resumen-lista">Mostrando 0 de 0 tareas</p>
+          <ul id="listaTareas" class="task-list" aria-live="polite"></ul>
+          <p id="estadoVacio" class="estado-vacio" hidden>No hay tareas para mostrar.</p>
+        </section>
+      </div>
+    </div>
+
+    <footer class="app-footer d-flex justify-content-between flex-wrap gap-2">
+      <span>TaskManager · Programación de Sistemas Web · ECOTEC</span>
+      <span>HTML5 + CSS + JavaScript ES6 (sin frameworks)</span>
+    </footer>
+  </main>
+
+  <!-- Plantilla de cada tarea: se clona desde JavaScript (ui.js) -->
+  <template id="plantillaTarea">
+    <li class="task-item">
+      <input type="checkbox" class="form-check-input task-check">
+      <div class="task-body">
+        <p class="task-title"></p>
+        <div class="task-meta">
+          <span class="task-priority"></span>
+          <time class="task-date"></time>
+          <span class="task-source"></span>
+        </div>
+      </div>
+      <div class="task-actions">
+        <button type="button" class="btn btn-sm btn-outline-secondary btn-editar">Editar</button>
+        <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>
+      </div>
+    </li>
+  </template>
+
+</body>
+</html>
