@@ -8,6 +8,8 @@ import * as ui from './ui.js';
 /* ---------- Estado ---------- */
 
 const estado = {
+  filtro: 'todas',      // todas | pendientes | completadas
+  busqueda: '',
   tareas: []
 };
 
@@ -16,7 +18,16 @@ const PRIORIDADES_VALIDAS = ['alta', 'media', 'baja'];
 /* ---------- Render y persistencia ---------- */
 
 function obtenerTareasVisibles() {
-  const visibles = [...estado.tareas];
+  const texto = estado.busqueda.toLowerCase();
+
+  // filter() devuelve un arreglo nuevo, así el orden no altera estado.tareas
+  const visibles = estado.tareas
+    .filter((tarea) => {
+      if (estado.filtro === 'pendientes') return !tarea.completed;
+      if (estado.filtro === 'completadas') return tarea.completed;
+      return true;
+    })
+    .filter((tarea) => tarea.title.toLowerCase().includes(texto));
   return visibles;
 }
 
@@ -175,6 +186,19 @@ function registrarEventos() {
   elementos.btnCancelar.addEventListener('click', ui.limpiarFormulario);
   elementos.lista.addEventListener('click', manejarClickLista);
   elementos.lista.addEventListener('change', manejarCambioLista);
+
+  // Búsqueda dinámica en tiempo real (cada tecla)
+  elementos.busqueda.addEventListener('input', (evento) => {
+    estado.busqueda = evento.target.value.trim();
+    renderizar();
+  });
+
+  elementos.filtros.forEach((radio) =>
+    radio.addEventListener('change', (evento) => {
+      estado.filtro = evento.target.value;
+      renderizar();
+    })
+  );
 
   window.addEventListener('online', () => {
     ui.actualizarEstadoConexion();
