@@ -1,0 +1,14 @@
+# Archivos generados por el editor o el sistema (no forman parte del proyecto)
+
+# Phoenix Code: configuración de autocompletado creada automáticamente
+jsconfig.json
+tsconfig.json
+
+# Otros editores
+.vscode/
+.idea/
+
+# Windows / macOS
+Thumbs.db
+desktop.ini
+.DS_Store

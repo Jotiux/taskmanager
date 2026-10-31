@@ -1,4 +1,7 @@
 // app.js — Módulo principal (punto de entrada, cargado con type="module").
-// Etapa 1: estructura base. La lógica se agrega en los siguientes commits.
+// Etapa 2: se conecta el módulo gestor de localStorage.
 
-console.log('[TaskManager] Estructura base cargada correctamente.');
+import { cargarTareas, existenDatosGuardados } from './storage.js';
+
+console.log('[TaskManager] ¿Hay datos guardados?', existenDatosGuardados());
+console.log('[TaskManager] Tareas en localStorage:', cargarTareas().length);
