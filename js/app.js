@@ -10,10 +10,22 @@ import * as ui from './ui.js';
 const estado = {
   filtro: 'todas',      // todas | pendientes | completadas
   busqueda: '',
+  orden: 'fecha-desc',
   tareas: []
 };
 
 const PRIORIDADES_VALIDAS = ['alta', 'media', 'baja'];
+
+const PESO_PRIORIDAD = { alta: 3, media: 2, baja: 1 };
+const porFecha = (a, b) => new Date(a.createdAt) - new Date(b.createdAt);
+
+// Funciones comparadoras para Array.prototype.sort()
+const COMPARADORES = {
+  'fecha-desc': (a, b) => porFecha(b, a),
+  'fecha-asc': porFecha,
+  'prioridad-desc': (a, b) => PESO_PRIORIDAD[b.priority] - PESO_PRIORIDAD[a.priority] || porFecha(b, a),
+  'prioridad-asc': (a, b) => PESO_PRIORIDAD[a.priority] - PESO_PRIORIDAD[b.priority] || porFecha(b, a)
+};
 
 /* ---------- Render y persistencia ---------- */
 
@@ -28,6 +40,8 @@ function obtenerTareasVisibles() {
       return true;
     })
     .filter((tarea) => tarea.title.toLowerCase().includes(texto));
+
+  visibles.sort(COMPARADORES[estado.orden]);
   return visibles;
 }
 
@@ -199,6 +213,11 @@ function registrarEventos() {
       renderizar();
     })
   );
+
+  elementos.orden.addEventListener('change', (evento) => {
+    estado.orden = evento.target.value;
+    renderizar();
+  });
 
   window.addEventListener('online', () => {
     ui.actualizarEstadoConexion();
