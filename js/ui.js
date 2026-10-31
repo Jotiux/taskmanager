@@ -19,6 +19,12 @@ export const elementos = {
   filtros: document.querySelectorAll('input[name="filtro"]'),
   btnSincronizar: $('btnSincronizar'),
   notificacion: $('notificacion'),
+  metricTotal: $('metricTotal'),
+  metricPendientes: $('metricPendientes'),
+  metricCompletadas: $('metricCompletadas'),
+  metricProgreso: $('metricProgreso'),
+  barraProgreso: $('barraProgreso'),
+  contenedorProgreso: $('contenedorProgreso'),
   estadoConexion: $('estadoConexion')
 };
 
@@ -97,6 +103,16 @@ function crearBoton(texto, clases) {
   boton.className = `btn btn-sm ${clases}`;
   boton.textContent = texto;
   return boton;
+}
+
+/** Actualiza las tarjetas del dashboard con las métricas calculadas en app.js. */
+export function renderMetricas({ total, pendientes, completadas, progreso }) {
+  elementos.metricTotal.textContent = total;
+  elementos.metricPendientes.textContent = pendientes;
+  elementos.metricCompletadas.textContent = completadas;
+  elementos.metricProgreso.textContent = `${progreso}%`;
+  elementos.barraProgreso.style.width = `${progreso}%`;
+  elementos.contenedorProgreso.setAttribute('aria-valuenow', String(progreso));
 }
 
 /**

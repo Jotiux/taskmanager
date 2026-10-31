@@ -45,9 +45,21 @@ function obtenerTareasVisibles() {
   return visibles;
 }
 
+function calcularMetricas(tareas) {
+  const total = tareas.length;
+  const completadas = tareas.filter((tarea) => tarea.completed).length;
+  return {
+    total,
+    completadas,
+    pendientes: total - completadas,
+    progreso: total === 0 ? 0 : Math.round((completadas / total) * 100)
+  };
+}
+
 /** Actualización reactiva: cada cambio de datos vuelve a pintar la lista y el dashboard. */
 function renderizar() {
   ui.renderTareas(obtenerTareasVisibles(), estado.tareas.length);
+  ui.renderMetricas(calcularMetricas(estado.tareas));
 }
 
 function persistirYRenderizar() {
